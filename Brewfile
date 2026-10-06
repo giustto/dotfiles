@@ -1,0 +1,7 @@
+brew "fzf"
+brew "zoxide"
+brew "stow"
+brew "neovim"
+brew "tmux"
+brew "herdr"
+brew "jq"

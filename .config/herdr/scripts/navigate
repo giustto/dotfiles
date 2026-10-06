@@ -1,0 +1,30 @@
+#!/bin/sh
+
+case ${1:-} in
+  h) direction=left ;;
+  j) direction=down ;;
+  k) direction=up ;;
+  l) direction=right ;;
+  *) exit 1 ;;
+esac
+
+herdr_bin=${HERDR_BIN_PATH:-herdr}
+pane=${HERDR_ACTIVE_PANE_ID:?missing active pane}
+info=$("$herdr_bin" pane process-info --pane "$pane") || exit 1
+
+if printf '%s\n' "$info" | jq -e '
+  any(.result.process_info.foreground_processes[]?;
+    ((.argv0 // .name) | split("/") | last | test("^(n?vim?)(diff)?$")))
+' >/dev/null; then
+  exec "$herdr_bin" pane send-keys "$pane" "ctrl+$1"
+fi
+
+# Keep Ctrl-l available to the shell's clear widget at the rightmost edge.
+if [ "$1" = l ]; then
+  neighbor=$("$herdr_bin" pane neighbor --pane "$pane" --direction right) || exit 1
+  if printf '%s\n' "$neighbor" | jq -e '.result.neighbor.neighbor_pane_id == null' >/dev/null; then
+    exec "$herdr_bin" pane send-keys "$pane" ctrl+l
+  fi
+fi
+
+exec "$herdr_bin" pane focus --pane "$pane" --direction "$direction"

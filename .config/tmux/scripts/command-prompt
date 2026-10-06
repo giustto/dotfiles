@@ -1,0 +1,15 @@
+#!/bin/sh
+
+printf '\n  Command: '
+IFS= read -r command
+[ -n "$command" ] || exit 0
+
+command_file=$(mktemp "${TMPDIR:-/tmp}/tmux-command.XXXXXX") || exit 1
+trap 'rm -f "$command_file"' EXIT HUP INT TERM
+printf '%s\n' "$command" >"$command_file"
+
+if ! output=$(tmux source-file "$command_file" 2>&1); then
+  printf '\n  \033[1;31m%s\033[0m\n\n  Press Enter to close.' "$output"
+  IFS= read -r _
+fi
+

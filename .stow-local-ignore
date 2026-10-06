@@ -1,0 +1,6 @@
+^/README\.md$
+^/Brewfile$
+^/\.git$
+^/\.gitignore$
+^/\.DS_Store$
+^/\.config/zsh/\.zcompdump.*$

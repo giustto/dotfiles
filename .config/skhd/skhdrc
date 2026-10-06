@@ -1,0 +1,16 @@
+# Option+J/K: previous/next Space, including native fullscreen, on this display.
+alt - j : /bin/sh "${XDG_CONFIG_HOME:-$HOME/.config}/yabai/scripts/window-action" previous
+alt - k : /bin/sh "${XDG_CONFIG_HOME:-$HOME/.config}/yabai/scripts/window-action" next
+
+# Snap left/right; repeat on the same side to cycle half, two-thirds, one-third.
+ctrl + alt - j : /bin/sh "${XDG_CONFIG_HOME:-$HOME/.config}/yabai/scripts/window-action" left
+ctrl + alt - k : /bin/sh "${XDG_CONFIG_HOME:-$HOME/.config}/yabai/scripts/window-action" right
+
+# Maximize within the usable screen area.
+ctrl + alt - u : /bin/sh "${XDG_CONFIG_HOME:-$HOME/.config}/yabai/scripts/window-action" maximize
+
+# Center without resizing, respecting the menu bar and visible Dock.
+alt - c : /bin/sh "${XDG_CONFIG_HOME:-$HOME/.config}/yabai/scripts/window-action" center
+
+# Move the focused window to the next monitor and follow it; wrap at the end.
+alt - m : /bin/sh "${XDG_CONFIG_HOME:-$HOME/.config}/yabai/scripts/window-action" monitor

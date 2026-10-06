@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# Keep tmux aligned with Ghostty's neon light/dark themes.
+mode=${1:-dark-or-light}
+
+if [ "$mode" = "dark-or-light" ]; then
+  if defaults read -g AppleInterfaceStyle 2>/dev/null | grep -qi dark; then
+    mode=dark
+  else
+    mode=light
+  fi
+fi
+
+if [ "$mode" = "light" ]; then
+  bg='#f8f9fc'
+  bg_alt='#eef1f6'
+  surface='#dfe4ea'
+  border='#a7b1bf'
+  fg='#1b1f2a'
+  muted='#6e7681'
+  blue='#1f6feb'
+  magenta='#bf4ad4'
+else
+  bg='#10131b'
+  bg_alt='#1a1f2b'
+  surface='#30384a'
+  border='#566078'
+  fg='#e6e9ef'
+  muted='#7a8199'
+  blue='#57c7ff'
+  magenta='#ff6ac1'
+fi
+
+tmux set-option -g status-style "fg=$muted,bg=$bg_alt"
+tmux set-option -g status-left-style "fg=$bg,bg=$blue,bold"
+tmux set-option -g status-right-style "fg=$muted,bg=$bg_alt"
+tmux set-window-option -g window-status-style "fg=$muted,bg=$bg_alt"
+tmux set-window-option -g window-status-current-style "fg=$fg,bg=$surface,bold"
+tmux set-option -g pane-border-style "fg=$border"
+tmux set-option -g pane-active-border-style "fg=$blue"
+tmux set-option -g message-style "fg=$fg,bg=$surface"
+tmux set-option -g message-command-style "fg=$bg,bg=$blue,bold"
+tmux set-option -g popup-style "fg=$fg,bg=$bg"
+tmux set-option -g popup-border-style "fg=$blue,bg=$bg"
+tmux set-window-option -g mode-style "fg=$bg,bg=$magenta,bold"

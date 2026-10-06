@@ -1,0 +1,9 @@
+#!/bin/sh
+
+current=$(tmux display-message -p '#W')
+printf '\n  Current name: \033[1;34m%s\033[0m\n\n  New name: ' "$current"
+IFS= read -r name
+[ -n "$name" ] || exit 0
+
+tmux rename-window -- "$name"
+

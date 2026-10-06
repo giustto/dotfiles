@@ -1,0 +1,156 @@
+onboarding = false
+
+# Match tmux and Ghostty's neon palette, including automatic light/dark changes.
+[theme]
+name = "terminal"
+auto_switch = true
+dark_name = "terminal"
+light_name = "terminal"
+
+[theme.custom.dark]
+panel_bg = "#10131b"
+sidebar_bg = "#1a1f2b"
+active_row_bg = "#30384a"
+selection_bg = "#30384a"
+surface0 = "#30384a"
+surface1 = "#566078"
+surface_dim = "#1a1f2b"
+overlay0 = "#566078"
+overlay1 = "#7a8199"
+text = "#e6e9ef"
+subtext0 = "#7a8199"
+accent = "#57c7ff"
+blue = "#57c7ff"
+mauve = "#ff6ac1"
+red = "#ff5c8a"
+green = "#5af78e"
+yellow = "#f3f99d"
+teal = "#9aedfe"
+peach = "#ffb86c"
+
+[theme.custom.light]
+panel_bg = "#f8f9fc"
+sidebar_bg = "#eef1f6"
+active_row_bg = "#dfe4ea"
+selection_bg = "#dfe4ea"
+surface0 = "#dfe4ea"
+surface1 = "#a7b1bf"
+surface_dim = "#eef1f6"
+overlay0 = "#a7b1bf"
+overlay1 = "#6e7681"
+text = "#1b1f2a"
+subtext0 = "#6e7681"
+accent = "#1f6feb"
+blue = "#1f6feb"
+mauve = "#bf4ad4"
+red = "#e5484d"
+green = "#2ea043"
+yellow = "#d29922"
+teal = "#0ea5b7"
+peach = "#bc6a21"
+
+[terminal]
+new_cwd = "follow"
+
+[keys]
+# Literal caret, just like tmux; this is not Ctrl+6.
+prefix = "^"
+new_tab = "prefix+c"
+rename_tab = "prefix+comma"
+previous_tab = ["prefix+p", "alt+shift+h"]
+next_tab = ["prefix+n", "alt+shift+l"]
+switch_tab = "prefix+1..9"
+focus_pane_left = ["prefix+h", "prefix+left"]
+focus_pane_down = ["prefix+j", "prefix+down"]
+focus_pane_up = ["prefix+k", "prefix+up"]
+focus_pane_right = ["prefix+l", "prefix+right"]
+split_vertical = "prefix+|"
+split_horizontal = "prefix+minus"
+resize_pane_left = "prefix+shift+h"
+resize_pane_down = "prefix+shift+j"
+resize_pane_up = "prefix+shift+k"
+resize_pane_right = "prefix+shift+l"
+resize_mode = "prefix+shift+r"
+zoom = "prefix+z"
+close_pane = "prefix+x"
+copy_mode = "prefix+["
+reload_config = "prefix+r"
+goto = "prefix+s"
+settings = "prefix+shift+s"
+detach = "prefix+d"
+
+# Direct navigation must forward Ctrl-h/j/k/l into Neovim before crossing edges.
+[[keys.command]]
+key = "ctrl+h"
+type = "shell"
+command = "sh ~/.config/herdr/scripts/navigate h"
+description = "navigate left through Neovim and panes"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "shell"
+command = "sh ~/.config/herdr/scripts/navigate j"
+description = "navigate down through Neovim and panes"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "shell"
+command = "sh ~/.config/herdr/scripts/navigate k"
+description = "navigate up through Neovim and panes"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "shell"
+command = "sh ~/.config/herdr/scripts/navigate l"
+description = "navigate right or clear at the shell's right edge"
+
+[[keys.command]]
+key = "prefix+f"
+type = "popup"
+command = "sh ~/.config/herdr/scripts/sessionizer"
+description = "pick or create a project workspace"
+width = "80%"
+height = "70%"
+
+[[keys.command]]
+key = "prefix+:"
+type = "popup"
+command = "sh ~/.config/herdr/scripts/command-prompt"
+description = "enter a herdr CLI command"
+width = "70%"
+height = 9
+
+[[keys.command]]
+key = "prefix+<"
+type = "shell"
+command = '"${HERDR_BIN_PATH:-herdr}" pane swap --pane "$HERDR_ACTIVE_PANE_ID" --direction up'
+description = "swap with the pane above"
+
+[[keys.command]]
+key = "prefix+>"
+type = "shell"
+command = '"${HERDR_BIN_PATH:-herdr}" pane swap --pane "$HERDR_ACTIVE_PANE_ID" --direction down'
+description = "swap with the pane below"
+
+[ui]
+tab_bar_position = "bottom"
+prompt_new_tab_name = false
+mouse_capture = true
+copy_on_select = true
+# tmux's simple separator: one shared line, no gaps or outside frame.
+# The renderer uses accent for the active divider and overlay0 otherwise.
+pane_borders = "auto"
+pane_outer_borders = false
+pane_gaps = false
+show_agent_labels_on_pane_borders = false
+pane_scrollbars = false
+tab_bar_right = [
+  { type = "zoom" },
+  { type = "command", command = 'basename "${HERDR_ACTIVE_PANE_CWD:-$PWD}"', interval_seconds = 5, timeout_seconds = 2 },
+  { type = "datetime", format = "%H:%M" },
+]
+tab_bar_right_separator = "  "
+
+# Herdr measures scrollback in bytes rather than tmux's history-limit lines.
+[advanced]
+scrollback_limit_bytes = 10000000

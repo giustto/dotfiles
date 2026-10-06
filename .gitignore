@@ -1,0 +1,18 @@
+# macOS metadata
+.DS_Store
+._*
+
+# Zsh completion caches and shell history
+.zcompdump*
+.zsh_history
+.zhistory
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# Local secrets
+.env
+.env.*
+!.env.example

@@ -1,0 +1,9 @@
+font-family = "JetBrainsMono Nerd Font"
+font-size = 14
+
+window-width = 115
+window-height = 35
+
+theme = dark:neon-dark,light:neon-light
+
+adjust-box-thickness = 2

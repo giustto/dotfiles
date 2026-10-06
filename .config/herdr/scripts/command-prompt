@@ -1,0 +1,11 @@
+#!/bin/sh
+
+printf '\n  herdr '
+IFS= read -r command
+[ -n "$command" ] || exit 0
+
+# Like tmux's command prompt, input is an intentional command, not a pane shell.
+if ! output=$(sh -c 'exec "$0" '"$command" "${HERDR_BIN_PATH:-herdr}" 2>&1); then
+  printf '\n  \033[1;31m%s\033[0m\n\n  Press Enter to close.' "$output"
+  IFS= read -r _
+fi
