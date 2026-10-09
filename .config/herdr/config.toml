@@ -9,7 +9,7 @@ light_name = "terminal"
 
 [theme.custom.dark]
 panel_bg = "#10131b"
-sidebar_bg = "#1a1f2b"
+sidebar_bg = "#262e3e"
 active_row_bg = "#30384a"
 selection_bg = "#30384a"
 surface0 = "#30384a"
