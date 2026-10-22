@@ -193,8 +193,10 @@ configs so shells and apps start without running Python or regenerating themes.
   green for additions, red for errors/deletions, and yellow for warnings/constants.
 - Dark mode uses fluorescent colors. Light mode has two layers: vivid text inks,
   plus a `neon` table for fluorescent ANSI bright colors and highlight backgrounds.
-  Search, selected tabs, completion selection, mode labels, and Herdr selections
+  Search, selected tabs, completion selection, and mode labels
   use fluorescent fills with dark foreground text.
+- Herdr's light-mode workspace and agent rows use the palette's soft gray surface
+  and selection colors for quieter sidebar highlights.
 - Primary text and comments retain a 4.5:1 contrast target in both modes. Dark
   accents retain 4.5:1; light text accents use a 3:1 target for a brighter look.
   That lower target is a deliberate visual tradeoff for small colored text.

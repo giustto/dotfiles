@@ -120,9 +120,9 @@ def herdr_theme(palettes):
         lines += ["", f"[theme.custom.{mode}]"]
         for key, role in roles.items():
             color = p[role]
-            if "neon" in p:
-                color = {"active_row_bg": p["neon"]["cyan"], "selection_bg": p["neon"]["green"],
-                         "accent": p["neon"]["blue"]}.get(key, color)
+            # Keep workspace and agent row fills neutral in light mode.
+            if "neon" in p and key == "accent":
+                color = p["neon"]["blue"]
             lines.append(f'{key} = "{color}"')
     return "\n".join(lines + [END])
 
