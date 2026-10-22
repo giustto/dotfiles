@@ -135,15 +135,19 @@ def check():
                 try:
                     tmux("-f", "/dev/null", "new-session", "-d", "-s", "client", "-x", "140", "-y", "40", binary)
                     time.sleep(1)
-                    for key, number in (("M-2", 2), ("M-1", 1), ("M-j", 2), ("M-k", 1)):
-                        tmux("send-keys", "-t", "client", key)
+                    for key, number in (("M-2", 2), ("M-1", 1), (")", 2), ("(", 1)):
+                        tmux("send-keys", "-t", "client", "^", key)
                         wait_for(lambda: focused_number() == number, "Workspace shortcut " + key + ' expected ' + str(number))
                     tmux("send-keys", "-t", "client", "M-n")
-                    time.sleep(0.2)
-                    tmux("send-keys", "-t", "client", "-l", "keyboard workspace")
-                    tmux("send-keys", "-t", "client", "Enter")
                     wait_for(lambda: len(api("workspace", "list")["workspaces"]) == 5,
-                             "Alt-N creates a named workspace")
+                             "Alt-N creates a workspace without a naming prompt")
+                    workspace = next(w for w in api("workspace", "list")["workspaces"] if w["focused"])
+                    assert workspace["label"], "New workspace has an automatic name"
+                    panes_before = len(api("pane", "list")["panes"])
+                    tmux("send-keys", "-t", "client", "M-7")
+                    wait_for(lambda: len(api("pane", "list")["panes"]) == panes_before + 1,
+                             "Alt-7 splits the active pane")
+                    assert focused_number() == workspace["number"], "Alt-7 does not switch workspaces"
                     tmux("source-file", str(ROOT / ".config/tmux/tmux.conf"))
                 finally:
                     subprocess.run(["tmux", "-S", tmux_socket, "kill-server"], env=env,

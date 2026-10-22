@@ -284,11 +284,10 @@ program. Keys below follow the prefix unless marked global.
 
 | Key | Action |
 | --- | --- |
-| `Alt-n` or `N` | Create a named workspace (Alt binding is global) |
+| `Alt-n` or `N` | Create a fresh workspace with an automatic name (Alt binding is global) |
 | `Alt-w` or `w` | Workspace picker (Alt binding is global) |
 | `Alt-p` | Pick/create/reuse a project workspace (global) |
-| `Alt-k` / `Alt-j` | Previous / next workspace (global) |
-| `Alt-1`–`Alt-9` | Jump to a workspace (global) |
+| `Alt-1`–`Alt-9` | Jump to a workspace after the prefix |
 | `(` / `)` | Previous / next workspace using the prefix |
 | `W` | Rename workspace |
 | `G` / `o` | Create / open a Git worktree |
@@ -297,6 +296,7 @@ program. Keys below follow the prefix unless marked global.
 | `g` | Lazygit in a popup in the active directory |
 | `c` | New tab in the current directory without a naming prompt |
 | `-` / `\|` | Split below / right in the current directory |
+| `Alt-7` | Split below (global; horizontal divider) |
 | `Ctrl-h/j/k/l` | Navigate Neovim windows and Herdr panes (global) |
 | `h/j/k/l` or arrow keys | Focus the adjacent pane |
 | `Alt-H` / `Alt-L` | Previous / next tab (global) |
@@ -309,6 +309,7 @@ program. Keys below follow the prefix unless marked global.
 | `[` | Enter copy mode; `v` selects and `y` copies |
 | `z` | Zoom the active pane |
 | `x` | Close the active pane |
+| `D` | Close the workspace |
 | `,` | Rename the current tab in Herdr's naming dialog |
 | `:` | Enter a Herdr CLI command in a popup, e.g. `workspace list` |
 | `r` | Reload the configuration |
@@ -326,7 +327,14 @@ shows workspace and tab, and agent states use distinct symbols. Background
 agent notifications appear inside Herdr after two seconds, with sounds disabled.
 Ghostty forwards left Option as Alt; right Option keeps special-character input.
 
-The project picker uses the shared discovery and controls described above.
+Left Option-j/k are left to macOS Spaces. Numbered workspace jumps require the
+prefix so that direct left Option-7 can split below. The original prefix `|`
+still splits right; use right Option to type symbols on layouts that need it.
+
+New workspaces open immediately with automatic names and a fresh shell. Rename
+one later with prefix `W`. The project picker instead selects a directory and
+creates or reuses its project workspace; it uses the shared discovery and
+controls described above.
 
 Workspace identity is recorded by canonical project path in the XDG state
 directory, scoped to the server socket/session. Creation requests are serialized,
