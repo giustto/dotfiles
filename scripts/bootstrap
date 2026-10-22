@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Install tested shell revisions atomically; never leave partial clone targets."""
+import argparse
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--check', action='store_true')
+args = parser.parse_args()
+root = Path(__file__).resolve().parents[1]
+lock = json.loads((root / '.config/shell/plugins.lock.json').read_text())
+base = Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local/share'))) / 'zinit'
+
+
+def git(path, *arguments):
+    return subprocess.run(['git', '-C', str(path), *arguments], check=True, text=True, capture_output=True).stdout.strip()
+
+
+missing = []
+for entry in [lock['manager'], *lock['plugins']]:
+    dest = base / entry['directory']
+    try:
+        current = git(dest, 'rev-parse', 'HEAD')
+    except subprocess.CalledProcessError:
+        current = None
+    if current == entry['commit']:
+        print('OK ' + entry['repo'])
+        continue
+    if args.check:
+        missing.append(entry['repo'])
+        print('MISSING / DIFFERENT REVISION ' + entry['repo'])
+        continue
+    if dest.exists():
+        if current is None:
+            raise SystemExit(f'Incomplete install at {dest}; move it aside and rerun scripts/setup')
+        if git(dest, 'status', '--porcelain'):
+            raise SystemExit(f'Local plugin edits at {dest}; preserve them before updating')
+        git(dest, 'fetch', '--depth=1', 'origin', entry['commit'])
+        git(dest, 'checkout', '--detach', entry['commit'])
+    else:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        temp = Path(tempfile.mkdtemp(prefix='.bootstrap-', dir=dest.parent))
+        try:
+            git(temp, 'init')
+            git(temp, 'remote', 'add', 'origin', 'https://github.com/' + entry['repo'] + '.git')
+            git(temp, 'fetch', '--depth=1', 'origin', entry['commit'])
+            git(temp, 'checkout', '--detach', entry['commit'])
+            temp.rename(dest)
+        finally:
+            if temp.exists():
+                shutil.rmtree(temp)
+    print('INSTALLED ' + entry['repo'] + ' @ ' + entry['commit'][:8])
+raise SystemExit(bool(missing))

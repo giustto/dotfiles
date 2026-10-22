@@ -15,6 +15,7 @@ return {
       }
       return {
         enhanced_diff_hl = true,
+        hooks = { diff_buf_win_enter = require("config.reading").diff_window },
         view = {
           default = { layout = layout, winbar_info = true, disable_diagnostics = true },
           file_history = { layout = layout, winbar_info = true, disable_diagnostics = true },

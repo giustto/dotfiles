@@ -1,113 +1,39 @@
-# My dotfiles
+# Dotfiles
 
-My terminal and editor setup, managed with GNU Stow. Includes tmux and Herdr
-project pickers, Neovim, Ghostty themes, Zsh with Powerlevel10k, and optional
-skhd/yabai window shortcuts.
+A macOS development setup with Ghostty, Zsh, Herdr/tmux, Neovim and Lazygit.
+Includes persistent agent-review checkpoints, TypeScript/Python language support
+and focused test commands. One shared neon palette colors applications; the
+shell prompt and path stay grayscale.
 
-## Layout
+## Install
 
-```text
-~/dotfiles/
-├── .config/
-│   ├── tmux/       # tmux.conf and tmux-specific scripts
-│   ├── herdr/      # config.toml and Herdr-specific scripts
-│   ├── nvim/
-│   ├── ghostty/    # config and themes
-│   ├── zsh/        # .zshrc and .p10k.zsh
-│   ├── skhd/       # optional window shortcuts
-│   └── yabai/      # optional window management and scripts
-├── .zshenv
-├── .stow-local-ignore
-├── Brewfile
-└── README.md
-```
-
-The entire `dotfiles` directory is one Stow package, selected as `.`. Its paths mirror your
-home directory: `.config/tmux` maps to `~/.config/tmux`, and `.zshenv` maps to
-`~/.zshenv`. Scripts with the same name stay inside their application's folder.
-`.stow-local-ignore` excludes the root README, Brewfile, Git metadata, and Zsh's
-completion cache from linking.
-
-## Setup on another machine
-
-1. Install Git, Zsh, GNU Stow, and the applications you want to use through
-   your machine's package manager. If you use Homebrew, the included Brewfile
-   installs the command-line dependencies. On macOS, install Apple's command
-   line tools with `xcode-select --install` if needed.
-2. Clone this repository to `~/dotfiles`, replacing the placeholder URL below
-   with this repository's URL. Alternatively, copy the entire folder, including
-   hidden files and directories.
-
-   ```sh
-   git clone <repository-url> "$HOME/dotfiles"
-   cd "$HOME/dotfiles"
-   ```
-
-   With Homebrew, install dependencies using `brew bundle --file=Brewfile`.
-   The Brewfile installs Stow, Neovim, tmux, Herdr, fzf, zoxide, and jq.
-   Install Ghostty and JetBrainsMono Nerd Font separately to use the terminal
-   appearance in these configs. The optional skhd/yabai window shortcuts are
-   specific to macOS; install those tools separately if you want to use them.
-   See their configuration README below.
-
-3. Preview the links before applying them:
-
-   ```sh
-   stow --no-folding --simulate --verbose --dir="$HOME/dotfiles" --target="$HOME" .
-   ```
-
-   Existing files can cause conflicts. Back up conflicting paths outside
-   `~/.config` before retrying, particularly `~/.zshenv`, `~/.zshrc`, and any
-   existing application config directories. For example, if these files exist:
-
-   ```sh
-   backup="$HOME/dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
-   mkdir -p "$backup"
-   mv "$HOME/.zshenv" "$backup/"
-   mv "$HOME/.zshrc" "$backup/"
-   ```
-
-   Move only paths that exist, and back up each conflicting application
-   directory similarly. Review any old links pointing into this repository:
-   links to the previous top-level config folders need replacing too.
-
-4. Once the preview succeeds, create the links:
-
-   ```sh
-   stow --no-folding --verbose --dir="$HOME/dotfiles" --target="$HOME" .
-   exec zsh -l
-   ```
-
-   `.zshenv` sets `ZDOTDIR` to `~/.config/zsh` (or `$XDG_CONFIG_HOME/zsh` if
-   you set that variable). These Stow commands target `~/.config`; if you use
-   a custom `XDG_CONFIG_HOME`, arrange the corresponding config links yourself.
-   On first shell startup, Zinit downloads its plugins and Powerlevel10k.
-   Neovim installs its plugins on first launch, so internet access is needed.
-   Restart Ghostty to load its config. Validate Herdr with `herdr config check`.
-
-Use `.` as the package name with `~/dotfiles` as the Stow directory. `stow */` inside
-the repository is for a different layout with one package per top-level folder.
-
-## Updating and removing links
-
-After pulling or copying updates, refresh links with:
+Requires Homebrew and Apple's command-line tools (`xcode-select --install` if missing).
+Replace `<repository-url>` with this repository's Git URL:
 
 ```sh
-stow --no-folding --restow --dir="$HOME/dotfiles" --target="$HOME" .
+git clone <repository-url> "$HOME/dotfiles"
+cd "$HOME/dotfiles"
+./scripts/setup
+./scripts/doctor
 ```
 
-To remove Stow-managed links while keeping the repository files:
+Setup installs Brewfile dependencies and pinned plugins, generates colors, checks
+for configuration conflicts and links files with GNU Stow. Preserve any conflicting
+existing configs before retrying; setup stops rather than overwriting them.
+
+Run `exec zsh -l`, restart Neovim and reload Ghostty with `Cmd-Shift-,`.
+Start Herdr with `herdr`; if already running, use `herdr server reload-config`.
+
+## Check
 
 ```sh
-stow --no-folding --delete --dir="$HOME/dotfiles" --target="$HOME" .
+./scripts/check
+./scripts/check --productivity # full UI, Git, language-server and test-runner checks
 ```
 
-## Configuration guides
+For the daily agent workflow: **Space rm** captures a checkpoint, **Space ra**
+opens subsequent changes, **Space rv** marks a file reviewed, and **Space pn**
+runs the test under your cursor. These are Neovim normal-mode shortcuts.
 
-- [tmux keybindings and workflow](.config/tmux/README.md)
-- [Herdr keybindings and workflow](.config/herdr/README.md)
-- [Neovim setup and shortcuts](.config/nvim/README.md)
-- [yabai and skhd window shortcuts](.config/yabai/README.md)
-
-Review the configs before using them: shell aliases, keybindings, project
-search directories, fonts, and window shortcuts reflect my preferences.
+See **[SETUP.md](SETUP.md)** for the full configuration, shortcuts, Git/AI review
+workflow, TypeScript/Python support, focused tests, colors and troubleshooting.

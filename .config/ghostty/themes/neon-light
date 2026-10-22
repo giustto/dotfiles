@@ -1,23 +1,22 @@
-background = #f8f9fc
-foreground = #1b1f2a
-cursor-color = #1b1f2a
-selection-background = #cfe3ff
-selection-foreground = #1b1f2a
-
-palette = 0=#dfe4ea
-palette = 1=#e5484d
-palette = 2=#2ea043
-palette = 3=#d29922
-palette = 4=#1f6feb
-palette = 5=#bf4ad4
-palette = 6=#0ea5b7
-palette = 7=#3c4257
-
-palette = 8=#8b949e
-palette = 9=#ff6a6f
-palette = 10=#3ddc84
-palette = 11=#ffcc33
-palette = 12=#58a6ff
-palette = 13=#d16eff
-palette = 14=#2dd4bf
-palette = 15=#ffffff
+# Generated from .config/theme/palette.json; edit the palette, then run ./scripts/theme.
+background = #fafafa
+foreground = #171717
+cursor-color = #171717
+selection-background = #dcdcdc
+selection-foreground = #171717
+palette = 0=#171717
+palette = 1=#ff1558
+palette = 2=#009f39
+palette = 3=#a87a00
+palette = 4=#005cff
+palette = 5=#f000b8
+palette = 6=#008fa8
+palette = 7=#171717
+palette = 8=#5c5c5c
+palette = 9=#ff245c
+palette = 10=#39ff72
+palette = 11=#f2ff00
+palette = 12=#267dff
+palette = 13=#ff00d4
+palette = 14=#00e8ff
+palette = 15=#171717

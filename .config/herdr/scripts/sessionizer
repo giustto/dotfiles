@@ -1,40 +1,9 @@
 #!/bin/sh
-
-for dependency in fzf jq; do
-  command -v "$dependency" >/dev/null 2>&1 || {
-    printf 'project picker requires %s\n' "$dependency" >&2
-    exit 1
-  }
-done
-
+set -eu
+# shellcheck source=.config/shell/projects.sh
+. "${XDG_CONFIG_HOME:-$HOME/.config}/shell/projects.sh"
+command -v jq >/dev/null 2>&1 || { printf 'Project picker requires jq\n' >&2; exit 1; }
 herdr_bin=${HERDR_BIN_PATH:-herdr}
-paths=$(
-  {
-    printf '%s\n' "$HOME/dotfiles"
-    find "$HOME/Developer" -mindepth 1 -maxdepth 2 -type d 2>/dev/null
-    command -v zoxide >/dev/null 2>&1 && zoxide query --list 2>/dev/null
-  } | awk '!seen[$0]++'
-)
-
-selected=$(printf '%s\n' "$paths" | fzf \
-  --prompt='project  ' \
-  --height=100% \
-  --layout=reverse \
-  --border=rounded \
-  --info=inline \
-  --preview='ls -la {}' \
-  --preview-window='right:55%:wrap')
-[ -n "$selected" ] || exit 0
-
-name=$(basename "$selected" | tr '.:' '__' | tr -cd '[:alnum:]_-')
-[ -n "$name" ] || name=workspace
-
-workspaces=$("$herdr_bin" workspace list) || exit 1
-workspace=$(printf '%s\n' "$workspaces" | jq -r --arg name "$name" '
-  first(.result.workspaces[] | select(.label == $name) | .workspace_id) // empty
-') || exit 1
-
-if [ -n "$workspace" ]; then
-  exec "$herdr_bin" workspace focus "$workspace"
-fi
-exec "$herdr_bin" workspace create --cwd "$selected" --label "$name" --focus
+selected=$(project_pick) || { pick_status=$?; case $pick_status in 1|130) exit 0 ;; *) exit "$pick_status" ;; esac; }
+export HERDR_BIN_PATH="$herdr_bin"
+exec python3 "$(dirname -- "$0")/workspace.py" "$selected"

@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Read-only diagnosis; does not install, relink, update or start applications."""
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+
+root = Path(__file__).resolve().parents[1]
+home = Path.home()
+problems = []
+
+
+def report(name, good, remedy=''):
+    print(('OK   ' if good else 'FIX  ') + name + ('' if good else ' — ' + remedy))
+    if not good:
+        problems.append(name)
+
+
+for executable in ['brew', 'stow', 'nvim', 'herdr', 'tmux', 'git', 'rg', 'fd', 'fzf', 'jq', 'lazygit',
+                   'node', 'tsc', 'typescript-language-server', 'pyright-langserver', 'python3', 'shellcheck', 'stylua']:
+    report(executable, shutil.which(executable) is not None, './scripts/setup')
+config = Path(os.environ.get('XDG_CONFIG_HOME', str(home / '.config')))
+for relative in ['nvim/init.lua', 'nvim/lua/config/checkpoint.lua', 'nvim/lua/config/task_review.lua',
+                 'nvim/lua/config/refresh.lua', 'herdr/config.toml', 'ghostty/config', 'theme/palette.json',
+                 'shell/projects.sh', 'shell/plugins.zsh', 'shell/plugins.lock.json', 'shell/codex.zsh', 'lazygit/config.yml']:
+    actual = config / relative
+    report('link ' + relative, actual.resolve() == (root / '.config' / relative).resolve(), './scripts/setup')
+lock = json.loads((root / '.config/nvim/lazy-lock.json').read_text())
+data = Path(os.environ.get('XDG_DATA_HOME', str(home / '.local/share')))
+for name, revision in lock.items():
+    path = data / 'nvim/lazy' / name
+    result = subprocess.run(['git', '-C', str(path), 'rev-parse', 'HEAD'], capture_output=True, text=True)
+    report('plugin ' + name, result.returncode == 0 and result.stdout.strip() == revision['commit'], ':Lazy restore')
+result = subprocess.run(['python3', str(root / 'scripts/bootstrap'), '--check'], capture_output=True, text=True)
+report('pinned shell plugins', result.returncode == 0, './scripts/setup')
+compiler = data / 'nvim/neon/typescript/node_modules/typescript'
+try:
+    compiler_ready = json.loads((compiler / 'package.json').read_text())['version'] == '5.9.3' and (compiler / 'lib/tsserver.js').is_file()
+except (OSError, ValueError, KeyError):
+    compiler_ready = False
+report('pinned TypeScript editor API', compiler_ready, './scripts/setup')
+if shutil.which('codex'):
+    codex_home = Path(os.environ.get('CODEX_HOME') or str(home / '.codex')).expanduser()
+    for mode in ('dark', 'light'):
+        theme = f'neon-{mode}.tmTheme'
+        report('Codex theme ' + mode, (codex_home / 'themes' / theme).resolve() ==
+               (root / '.config/theme/codex' / theme).resolve(), './scripts/theme --install-codex')
+report('macOS clipboard', shutil.which('pbcopy') is not None and shutil.which('pbpaste') is not None, 'Use a supported clipboard provider')
+fonts = [home / 'Library/Fonts', Path('/Library/Fonts')]
+report('JetBrains Mono Nerd Font', any(any(folder.glob('*JetBrains*')) for folder in fonts), './scripts/setup')
+print('\n' + (str(len(problems)) + ' issue(s) found.' if problems else 'Setup is ready.'))
+raise SystemExit(bool(problems))

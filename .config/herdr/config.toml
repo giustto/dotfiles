@@ -1,6 +1,7 @@
 onboarding = false
 
-# Match tmux and Ghostty's neon palette, including automatic light/dark changes.
+# BEGIN GENERATED THEME
+# Generated from .config/theme/palette.json; edit the palette, then run ./scripts/theme.
 [theme]
 name = "terminal"
 auto_switch = true
@@ -8,46 +9,47 @@ dark_name = "terminal"
 light_name = "terminal"
 
 [theme.custom.dark]
-panel_bg = "#10131b"
-sidebar_bg = "#262e3e"
-active_row_bg = "#30384a"
-selection_bg = "#30384a"
-surface0 = "#30384a"
-surface1 = "#566078"
-surface_dim = "#1a1f2b"
-overlay0 = "#566078"
-overlay1 = "#7a8199"
-text = "#e6e9ef"
-subtext0 = "#7a8199"
-accent = "#57c7ff"
-blue = "#57c7ff"
-mauve = "#ff6ac1"
-red = "#ff5c8a"
-green = "#5af78e"
-yellow = "#f3f99d"
-teal = "#9aedfe"
-peach = "#ffb86c"
+panel_bg = "#101010"
+sidebar_bg = "#191919"
+active_row_bg = "#303030"
+selection_bg = "#353535"
+surface0 = "#303030"
+surface1 = "#6b6b6b"
+surface_dim = "#191919"
+overlay0 = "#6b6b6b"
+overlay1 = "#a3a3a3"
+text = "#eeeeee"
+subtext0 = "#a3a3a3"
+accent = "#00c8ff"
+blue = "#00c8ff"
+mauve = "#ff27d8"
+red = "#ff3978"
+green = "#39ff88"
+yellow = "#faff00"
+teal = "#00f5ff"
+peach = "#ff9f1c"
 
 [theme.custom.light]
-panel_bg = "#f8f9fc"
-sidebar_bg = "#eef1f6"
-active_row_bg = "#dfe4ea"
-selection_bg = "#dfe4ea"
-surface0 = "#dfe4ea"
-surface1 = "#a7b1bf"
-surface_dim = "#eef1f6"
-overlay0 = "#a7b1bf"
-overlay1 = "#6e7681"
-text = "#1b1f2a"
-subtext0 = "#6e7681"
-accent = "#1f6feb"
-blue = "#1f6feb"
-mauve = "#bf4ad4"
-red = "#e5484d"
-green = "#2ea043"
-yellow = "#d29922"
-teal = "#0ea5b7"
-peach = "#bc6a21"
+panel_bg = "#fafafa"
+sidebar_bg = "#efefef"
+active_row_bg = "#00e8ff"
+selection_bg = "#39ff72"
+surface0 = "#dedede"
+surface1 = "#858585"
+surface_dim = "#efefef"
+overlay0 = "#858585"
+overlay1 = "#5c5c5c"
+text = "#171717"
+subtext0 = "#5c5c5c"
+accent = "#267dff"
+blue = "#005cff"
+mauve = "#f000b8"
+red = "#ff1558"
+green = "#009f39"
+yellow = "#a87a00"
+teal = "#008fa8"
+peach = "#df5400"
+# END GENERATED THEME
 
 [terminal]
 new_cwd = "follow"
@@ -55,6 +57,21 @@ new_cwd = "follow"
 [keys]
 # Literal caret, just like tmux; this is not Ctrl+6.
 prefix = "^"
+new_workspace = ["prefix+shift+n", "alt+n"]
+workspace_picker = ["prefix+w", "alt+w"]
+previous_workspace = ["prefix+(", "alt+k"]
+next_workspace = ["prefix+)", "alt+j"]
+switch_workspace = "alt+1..9"
+rename_workspace = "prefix+shift+w"
+new_worktree = "prefix+shift+g"
+open_worktree = "prefix+o"
+last_pane = "prefix+backtick"
+clear_pane = "prefix+ctrl+l"
+# H/J/K/L resize; avoid the default swap bindings colliding with them.
+swap_pane_left = ""
+swap_pane_down = "prefix+>"
+swap_pane_up = "prefix+<"
+swap_pane_right = ""
 new_tab = "prefix+c"
 rename_tab = "prefix+comma"
 previous_tab = ["prefix+p", "alt+shift+h"]
@@ -105,6 +122,14 @@ command = "sh ~/.config/herdr/scripts/navigate l"
 description = "navigate right or clear at the shell's right edge"
 
 [[keys.command]]
+key = "alt+p"
+type = "popup"
+command = "sh ~/.config/herdr/scripts/sessionizer"
+description = "pick or create a project workspace"
+width = "80%"
+height = "70%"
+
+[[keys.command]]
 key = "prefix+f"
 type = "popup"
 command = "sh ~/.config/herdr/scripts/sessionizer"
@@ -121,20 +146,21 @@ width = "70%"
 height = 9
 
 [[keys.command]]
-key = "prefix+<"
-type = "shell"
-command = '"${HERDR_BIN_PATH:-herdr}" pane swap --pane "$HERDR_ACTIVE_PANE_ID" --direction up'
-description = "swap with the pane above"
-
-[[keys.command]]
-key = "prefix+>"
-type = "shell"
-command = '"${HERDR_BIN_PATH:-herdr}" pane swap --pane "$HERDR_ACTIVE_PANE_ID" --direction down'
-description = "swap with the pane below"
+key = "prefix+g"
+type = "popup"
+command = 'cd "${HERDR_ACTIVE_PANE_CWD:-$HOME}" && lazygit'
+description = "Git branches, staging, history and worktrees"
+width = "95%"
+height = "90%"
 
 [ui]
+window_title = "{workspace} · {tab}"
+sidebar_width = 24
+sidebar_max_width = 30
+status_indicators = "symbols"
 tab_bar_position = "bottom"
 prompt_new_tab_name = false
+prompt_new_workspace_name = true
 mouse_capture = true
 copy_on_select = true
 # tmux's simple separator: one shared line, no gaps or outside frame.
@@ -150,6 +176,13 @@ tab_bar_right = [
   { type = "datetime", format = "%H:%M" },
 ]
 tab_bar_right_separator = "  "
+
+[ui.toast]
+delivery = "herdr"
+delay_seconds = 2
+
+[ui.sound]
+enabled = false
 
 # Herdr measures scrollback in bytes rather than tmux's history-limit lines.
 [advanced]

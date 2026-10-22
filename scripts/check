@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+repo=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
+cd "$repo"
+./scripts/theme --check
+python3 tests/theme.py
+python3 tests/codex.py
+shellcheck -x scripts/setup scripts/check tests/setup-runners .config/shell/projects.sh .config/theme/palette.sh .config/herdr/scripts/sessionizer .config/herdr/scripts/navigate .config/herdr/scripts/command-prompt .config/tmux/scripts/*
+zsh -n .config/zsh/.zshrc
+zsh -n .config/zsh/.p10k.zsh
+zsh -n .config/theme/shell.zsh
+zsh -n .config/shell/plugins.zsh
+zsh -n .config/shell/codex.zsh
+ruby -c Brewfile
+HERDR_CONFIG_PATH="$repo/.config/herdr/config.toml" herdr config check
+git diff --check
+if [ -x /Applications/Ghostty.app/Contents/MacOS/ghostty ]; then
+  /Applications/Ghostty.app/Contents/MacOS/ghostty +validate-config --config-file="$repo/.config/ghostty/config"
+fi
+if [ "${1:-}" = --integration ] || [ "${1:-}" = --productivity ]; then
+  python3 tests/workflows.py
+  python3 tests/live-ui.py
+  python3 tests/checkpoints.py
+  DOTFILES_ROOT="$repo" nvim --headless \
+    --cmd 'lua vim.opt.rtp:prepend(vim.env.DOTFILES_ROOT .. "/.config/nvim")' \
+    -u "$repo/.config/nvim/init.lua" \
+    '+lua dofile(vim.env.DOTFILES_ROOT .. "/.config/nvim/tests/review.lua")'
+  nvim --headless '+luafile .config/nvim/tests/refresh.lua'
+  nvim --headless '+luafile .config/nvim/tests/languages.lua'
+fi
+if [ "${1:-}" = --productivity ]; then
+  sh tests/setup-runners
+  nvim --headless '+luafile .config/nvim/tests/productivity.lua'
+fi
+printf 'Configuration checks passed.\n'

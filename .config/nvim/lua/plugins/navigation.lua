@@ -15,21 +15,30 @@ return {
       input = { enabled = true },
       notifier = { enabled = true, timeout = 3000 },
       quickfile = { enabled = true },
+      indent = { enabled = true, animate = { enabled = false } },
       statuscolumn = { enabled = true },
       lazygit = { win = { position = "float", width = 0.95, height = 0.95, border = "rounded" } },
       terminal = { win = { position = "bottom", height = 0.35, border = "top" } },
       picker = {
         enabled = true,
         layout = {
-          preset = function() return require("config.responsive").picker_layout() end,
+          preset = function()
+            return require("config.responsive").picker_layout()
+          end,
         },
         layouts = {
           vertical = { layout = { width = 0.9, min_width = 30, height = 0.9, min_height = 12 } },
           compact = {
             preview = false,
             layout = {
-              backdrop = false, width = 0.95, min_width = 1, height = 0.9, min_height = 4,
-              box = "vertical", border = true, title = "{title} {live} {flags}",
+              backdrop = false,
+              width = 0.95,
+              min_width = 1,
+              height = 0.9,
+              min_height = 4,
+              box = "vertical",
+              border = true,
+              title = "{title} {live} {flags}",
               { win = "input", height = 1, border = "bottom" },
               { win = "list", border = "none" },
             },
@@ -43,16 +52,25 @@ return {
             exclude = { ".git" },
             follow_file = true,
             auto_close = false,
-            layout = function() return require("config.responsive").explorer_layout() end,
+            layout = function()
+              return require("config.responsive").explorer_layout()
+            end,
             config = function(opts)
               local floating = require("config.responsive").explorer_floating()
               opts.auto_close = floating
               opts.jump.close = floating
               return require("snacks.picker.source.explorer").setup(opts)
             end,
-            win = { list = { keys = {
-              ["<C-h>"] = false, ["<C-j>"] = false, ["<C-k>"] = false, ["<C-l>"] = false,
-            } } },
+            win = {
+              list = {
+                keys = {
+                  ["<C-h>"] = false,
+                  ["<C-j>"] = false,
+                  ["<C-k>"] = false,
+                  ["<C-l>"] = false,
+                },
+              },
+            },
           },
           files = { hidden = true, exclude = { ".git" } },
           grep = { hidden = true, exclude = { ".git" } },
@@ -68,9 +86,11 @@ return {
       preset = "classic",
       spec = {
         { "<leader>b", group = "buffers" },
+        { "<leader>c", group = "code / language" },
         { "<leader>f", group = "find" },
         { "<leader>g", group = "git / hunks" },
         { "<leader>r", group = "review" },
+        { "<leader>p", group = "test / validate" },
         { "<leader>s", group = "search" },
         { "<leader>t", group = "tabs / terminal" },
         { "<leader>u", group = "interface" },
@@ -86,25 +106,92 @@ return {
         options = {
           theme = function()
             local p = require("config.theme").palette()
+            local accent = p.neon or p
             local function mode(color)
-              return { a = { fg = p.bg, bg = color, gui = "bold" },
-                b = { fg = p.fg, bg = p.surface }, c = { fg = p.muted, bg = p.alt } }
+              return {
+                a = { fg = p.neon and p.fg or p.bg, bg = color, gui = "bold" },
+                b = { fg = p.fg, bg = p.surface },
+                c = { fg = p.muted, bg = p.alt },
+              }
             end
-            return { normal = mode(p.blue), insert = mode(p.green), visual = mode(p.pink),
-              replace = mode(p.red), command = mode(p.yellow), inactive = mode(p.border) }
+            return {
+              normal = mode(accent.blue),
+              insert = mode(accent.green),
+              visual = mode(accent.pink),
+              replace = mode(accent.red),
+              command = mode(accent.yellow),
+              inactive = mode(p.border),
+            }
           end,
           globalstatus = true,
-          component_separators = "", section_separators = "",
+          component_separators = "",
+          section_separators = "",
         },
         sections = {
-          lualine_a = { { "mode", fmt = function(s) return s:sub(1, 1) end } },
+          lualine_a = { {
+            "mode",
+            fmt = function(s)
+              return s:sub(1, 1)
+            end,
+          } },
           lualine_b = {
-            { "branch", cond = function() return vim.o.columns >= 70 end },
-            { "diff", cond = function() return vim.o.columns >= 100 end },
+            {
+              "branch",
+              cond = function()
+                return vim.o.columns >= 70
+              end,
+            },
+            {
+              "diff",
+              cond = function()
+                return vim.o.columns >= 100
+              end,
+            },
           },
-          lualine_c = { { "filename", path = 0 } },
-          lualine_x = { { "filetype", cond = function() return vim.o.columns >= 95 end } },
-          lualine_y = { { "progress", cond = function() return vim.o.columns >= 70 end } },
+          lualine_c = {
+            { "filename", path = 1, shorting_target = 32 },
+            {
+              function()
+                return vim.b.neon_external_change and "EXTERNAL CHANGE" or ""
+              end,
+              color = "DiagnosticWarn",
+            },
+            {
+              function()
+                return require("config.task_review").status()
+              end,
+              color = "DiagnosticInfo",
+            },
+            {
+              function()
+                return "⇅ SYNC"
+              end,
+              cond = function()
+                return vim.wo.scrollbind
+              end,
+            },
+          },
+          lualine_x = {
+            {
+              function()
+                local m = package.loaded["config.testing"]
+                return m and m.status() or ""
+              end,
+            },
+            { "diagnostics", sources = { "nvim_diagnostic" }, sections = { "error", "warn" } },
+            {
+              "filetype",
+              cond = function()
+                return vim.o.columns >= 95
+              end,
+            },
+          },
+          lualine_y = { {
+            "progress",
+            cond = function()
+              return vim.o.columns >= 70
+            end,
+          } },
           lualine_z = { "location" },
         },
         extensions = { "lazy", "quickfix" },

@@ -3,6 +3,13 @@ font-size = 14
 
 window-width = 115
 window-height = 35
+window-padding-x = 8
+window-padding-y = 6
+window-padding-balance = true
+
+# Left Option drives Herdr/tmux shortcuts; Right Option still types symbols.
+macos-option-as-alt = left
+minimum-contrast = 3
 
 theme = dark:neon-dark,light:neon-light
 

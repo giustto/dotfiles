@@ -1,0 +1,15 @@
+# Generated from .config/theme/palette.json; edit the palette, then run ./scripts/theme.
+gui:
+  theme:
+    activeBorderColor: [cyan, bold]
+    inactiveBorderColor: [default]
+    searchingActiveBorderColor: [magenta, bold]
+    optionsTextColor: [cyan]
+    selectedLineBgColor: [default]
+    selectedLineFgColor: [cyan, bold]
+    cherryPickedCommitBgColor: [default]
+    cherryPickedCommitFgColor: [magenta]
+    unstagedChangesColor: [red]
+    defaultFgColor: [default]
+    authorColors:
+      "*": cyan

@@ -11,6 +11,7 @@
 *.swp
 *.swo
 *~
+*.log
 
 # Local secrets
 .env

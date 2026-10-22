@@ -1,0 +1,6 @@
+{
+  "name": "neon-editor-typescript",
+  "private": true,
+  "description": "Pinned classic compiler API for tsserver and focused-test discovery",
+  "dependencies": { "typescript": "5.9.3" }
+}

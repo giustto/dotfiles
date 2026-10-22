@@ -1,35 +1,14 @@
 #!/bin/sh
-
-if ! command -v fzf >/dev/null 2>&1; then
-  printf 'session picker requires fzf\n' >&2
-  exit 1
-fi
-
-paths=$(
-  {
-    printf '%s\n' "$HOME/dotfiles"
-    find "$HOME/Developer" -mindepth 1 -maxdepth 2 -type d 2>/dev/null
-    command -v zoxide >/dev/null 2>&1 && zoxide query --list 2>/dev/null
-  } | awk '!seen[$0]++'
-)
-
-selected=$(printf '%s\n' "$paths" | fzf \
-  --prompt='project  ' \
-  --height=100% \
-  --layout=reverse \
-  --border=rounded \
-  --info=inline \
-  --preview='ls -la {}' \
-  --preview-window='right:55%:wrap')
-
-[ -n "$selected" ] || exit 0
-
-name=$(basename "$selected" | tr '.:' '__' | tr -cd '[:alnum:]_-')
-[ -n "$name" ] || name=workspace
-
+set -eu
+# shellcheck source=.config/shell/projects.sh
+. "${XDG_CONFIG_HOME:-$HOME/.config}/shell/projects.sh"
+selected=$(project_pick) || { pick_status=$?; case $pick_status in 1|130) exit 0 ;; *) exit "$pick_status" ;; esac; }
+name=$(project_name "$selected")
 if ! tmux has-session -t "=$name" 2>/dev/null; then
   tmux new-session -d -s "$name" -c "$selected"
 fi
-
-tmux switch-client -t "=$name"
-
+if [ -n "${TMUX:-}" ]; then
+  tmux switch-client -t "=$name"
+else
+  exec tmux attach-session -t "=$name"
+fi

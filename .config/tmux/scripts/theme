@@ -11,25 +11,9 @@ if [ "$mode" = "dark-or-light" ]; then
   fi
 fi
 
-if [ "$mode" = "light" ]; then
-  bg='#f8f9fc'
-  bg_alt='#eef1f6'
-  surface='#dfe4ea'
-  border='#a7b1bf'
-  fg='#1b1f2a'
-  muted='#6e7681'
-  blue='#1f6feb'
-  magenta='#bf4ad4'
-else
-  bg='#10131b'
-  bg_alt='#1a1f2b'
-  surface='#30384a'
-  border='#566078'
-  fg='#e6e9ef'
-  muted='#7a8199'
-  blue='#57c7ff'
-  magenta='#ff6ac1'
-fi
+# shellcheck source=.config/theme/palette.sh
+. "${XDG_CONFIG_HOME:-$HOME/.config}/theme/palette.sh"
+neon_palette "$mode" || exit 1
 
 tmux set-option -g status-style "fg=$muted,bg=$bg_alt"
 tmux set-option -g status-left-style "fg=$bg,bg=$blue,bold"

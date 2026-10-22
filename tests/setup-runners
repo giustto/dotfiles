@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+# Keep one stable fixture location shared with the Neovim integration test.
+fixture=/tmp/dotfiles-productivity-fixture
+if [ ! -x "$fixture/.venv/bin/python" ]; then python3 -m venv "$fixture/.venv"; fi
+if ! "$fixture/.venv/bin/python" -c 'import pytest; assert pytest.__version__ == "8.4.2"' 2>/dev/null; then
+  "$fixture/.venv/bin/python" -m pip install 'pytest==8.4.2'
+fi
+if ! node -e 'const p=process.argv[1]; if(require(p+"/node_modules/vitest/package.json").version!=="5.0.5" || require(p+"/node_modules/jest/package.json").version!=="30.5.2") process.exit(1)' "$fixture" 2>/dev/null; then
+  npm install --prefix "$fixture" --ignore-scripts --no-audit --no-fund --no-save 'vitest@5.0.5' 'jest@30.5.2'
+fi

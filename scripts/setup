@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+repo=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
+command -v brew >/dev/null 2>&1 || { printf 'Install Homebrew first: https://brew.sh\n' >&2; exit 1; }
+brew bundle install --file="$repo/Brewfile"
+python3 "$repo/scripts/bootstrap"
+editor_tools="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/neon/typescript"
+mkdir -p "$editor_tools"
+cp "$repo/.config/nvim/tools/package.json" "$editor_tools/package.json"
+cp "$repo/.config/nvim/tools/package-lock.json" "$editor_tools/package-lock.json"
+npm ci --prefix "$editor_tools" --ignore-scripts --no-audit --no-fund
+"$repo/scripts/theme" --install-codex
+# Stop before changing links if any existing files would conflict.
+stow --no-folding --simulate --verbose --dir="$repo" --target="$HOME" .
+stow --no-folding --restow --verbose --dir="$repo" --target="$HOME" .
+nvim --headless '+Lazy! restore' +qa
+printf '\nDotfiles linked. Run exec zsh -l, restart Neovim, and reload Ghostty with Cmd-Shift-,.\n'

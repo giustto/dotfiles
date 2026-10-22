@@ -4,7 +4,10 @@ o.number = true
 o.relativenumber = true
 o.signcolumn = "yes"
 o.cursorline = true
-o.wrap = false
+o.wrap = true
+o.linebreak = true
+o.breakindent = true
+o.showbreak = "↳ "
 o.scrolloff = 5
 o.sidescrolloff = 8
 o.splitright = true
@@ -33,6 +36,11 @@ o.list = true
 o.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
 o.fillchars = { eob = " ", diff = "╱" }
 o.diffopt = { "internal", "filler", "closeoff", "linematch:60", "algorithm:histogram", "indent-heuristic" }
+o.diffopt:append("followwrap")
+o.scrollopt = { "ver", "hor", "jump" }
+o.smoothscroll = true
+o.virtualedit = "block"
+o.completeopt = { "menuone", "noselect", "popup" }
 o.grepprg = "rg --vimgrep --smart-case --hidden --glob !.git"
 o.shortmess:append("I")
 

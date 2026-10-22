@@ -1,0 +1,34 @@
+{
+  "manager": {
+    "repo": "zdharma-continuum/zinit",
+    "commit": "f466c8805d8890f76bed8cf0972e0f7310fc5fc9",
+    "directory": "zinit.git"
+  },
+  "plugins": [
+    {
+      "repo": "romkatv/powerlevel10k",
+      "commit": "d05a1b00f9a61f9578bf9dc19b8451942dde8734",
+      "directory": "plugins/romkatv---powerlevel10k"
+    },
+    {
+      "repo": "zsh-users/zsh-completions",
+      "commit": "989b23277ab33e8d5e82df6aed936e846db9d8b8",
+      "directory": "plugins/zsh-users---zsh-completions"
+    },
+    {
+      "repo": "zsh-users/zsh-autosuggestions",
+      "commit": "85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5",
+      "directory": "plugins/zsh-users---zsh-autosuggestions"
+    },
+    {
+      "repo": "Aloxaf/fzf-tab",
+      "commit": "24105b15714bfec37989ed5c5b6e60f572253019",
+      "directory": "plugins/Aloxaf---fzf-tab"
+    },
+    {
+      "repo": "zsh-users/zsh-syntax-highlighting",
+      "commit": "e6683f20e5c38d3e5447f45845d04ddda75d0f23",
+      "directory": "plugins/zsh-users---zsh-syntax-highlighting"
+    }
+  ]
+}

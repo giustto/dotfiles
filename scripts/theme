@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""Generate native app themes from the only editable palette; no runtime deps."""
+import argparse
+import json
+import os
+from pathlib import Path
+import plistlib
+import re
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ".config/theme/palette.json"
+NOTICE = "Generated from " + SOURCE + "; edit the palette, then run ./scripts/theme."
+BEGIN = "# BEGIN GENERATED THEME"
+END = "# END GENERATED THEME"
+ACCENTS = ("red", "green", "yellow", "blue", "pink", "cyan")
+ROLES = {"bg", "alt", "surface", "border", "fg", "muted", "orange", "selection",
+         "add", "delete", "change", "text", *ACCENTS}
+
+
+def rgb(color):
+    return tuple(int(color[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def luminance(color):
+    linear = []
+    for value in rgb(color):
+        n = value / 255
+        linear.append(n / 12.92 if n <= 0.04045 else ((n + 0.055) / 1.055) ** 2.4)
+    return sum(a * b for a, b in zip(linear, (0.2126, 0.7152, 0.0722)))
+
+
+def validate(palettes):
+    if set(palettes) != {"dark", "light"}:
+        raise ValueError("Palette must contain dark and light modes")
+    for mode, p in palettes.items():
+        if not ROLES <= set(p) or set(p) - ROLES - {"neon"}:
+            raise ValueError(f"{mode}: missing/unknown roles: {set(p) ^ ROLES}")
+        for name, color in p.items():
+            if name == "neon":
+                if not isinstance(color, dict) or set(color) != {*ACCENTS, "orange"}:
+                    raise ValueError(f"{mode}.neon: expected all six accents and orange")
+                if any(not isinstance(c, str) or not re.fullmatch(r"#[0-9a-f]{6}", c) for c in color.values()):
+                    raise ValueError(f"{mode}.neon: expected lowercase #rrggbb colors")
+                continue
+            if not isinstance(color, str) or not re.fullmatch(r"#[0-9a-f]{6}", color):
+                raise ValueError(f"{mode}.{name}: expected lowercase #rrggbb")
+        for name in ("bg", "alt", "surface", "border", "fg", "muted", "selection"):
+            if len(set(rgb(p[name]))) != 1:
+                raise ValueError(f"{mode}.{name}: shell surfaces/text must stay grayscale")
+        for name in ("fg", "muted", *ACCENTS, "orange"):
+            a, b = luminance(p[name]), luminance(p["bg"])
+            minimum = 3.0 if mode == "light" and name in (*ACCENTS, "orange") else 4.5
+            if (max(a, b) + 0.05) / (min(a, b) + 0.05) < minimum:
+                raise ValueError(f"{mode}.{name}: contrast must be at least {minimum}:1")
+
+
+def ansi(p, mode):
+    colors = [p["fg"] if mode == "light" else p["surface"]]
+    colors += [p[name] for name in ACCENTS] + [p["fg"], p["muted"]]
+    # Optional fluorescent accents are separate from readable text colors.
+    for name in ACCENTS:
+        channels = rgb(p[name])
+        colors.append(p["neon"][name] if "neon" in p else
+                      "#" + "".join(f"{round(n + (255 - n) * 0.22):02x}" for n in channels)
+                      if mode == "dark" else p[name])
+    return colors + [p["fg"]]
+
+
+def ghostty(p, mode):
+    values = {"background": p["bg"], "foreground": p["fg"], "cursor-color": p["fg"],
+              "selection-background": p["selection"], "selection-foreground": p["fg"]}
+    lines = ["# " + NOTICE] + [f"{key} = {value}" for key, value in values.items()]
+    lines += [f"palette = {i}={color}" for i, color in enumerate(ansi(p, mode))]
+    return "\n".join(lines) + "\n"
+
+
+def lua_palette(palettes):
+    lines = ["-- " + NOTICE, "return {"]
+    for mode, p in palettes.items():
+        lines.append(f"  {mode} = {{")
+        for key, value in p.items():
+            if isinstance(value, dict):
+                lines.append(f"    {key} = {{")
+                lines += [f'      {name} = "{color}",' for name, color in value.items()]
+                lines.append("    },")
+            else:
+                lines.append(f'    {key} = "{value}",')
+        lines.append("  },")
+    lines.append("  ansi = {")
+    for mode, p in palettes.items():
+        lines.append("    " + mode + " = {")
+        lines += [f'      "{color}",' for color in ansi(p, mode)]
+        lines.append("    },")
+    return "\n".join(lines + ["  },", "}", ""])
+
+
+def tmux_palette(palettes):
+    roles = {"bg": "bg", "bg_alt": "alt", "surface": "surface", "border": "border",
+             "fg": "fg", "muted": "muted", "blue": "blue", "magenta": "pink"}
+    lines = ["#!/bin/sh", "# " + NOTICE, "# Variables are consumed by the script sourcing this file.",
+             "# shellcheck disable=SC2034", "neon_palette() {", '  case ${1:-dark} in']
+    for mode, p in palettes.items():
+        lines.append(f"    {mode})")
+        lines += [f"      {var}='{p[role]}'" for var, role in roles.items()]
+        lines.append("      ;;")
+    return "\n".join(lines + ["    *) return 2 ;;", "  esac", "}", ""])
+
+
+def herdr_theme(palettes):
+    roles = {"panel_bg": "bg", "sidebar_bg": "alt", "active_row_bg": "surface",
+             "selection_bg": "selection", "surface0": "surface", "surface1": "border",
+             "surface_dim": "alt", "overlay0": "border", "overlay1": "muted",
+             "text": "fg", "subtext0": "muted", "accent": "blue", "blue": "blue",
+             "mauve": "pink", "red": "red", "green": "green", "yellow": "yellow",
+             "teal": "cyan", "peach": "orange"}
+    lines = [BEGIN, "# " + NOTICE, "[theme]", 'name = "terminal"', "auto_switch = true",
+             'dark_name = "terminal"', 'light_name = "terminal"']
+    for mode, p in palettes.items():
+        lines += ["", f"[theme.custom.{mode}]"]
+        for key, role in roles.items():
+            color = p[role]
+            if "neon" in p:
+                color = {"active_row_bg": p["neon"]["cyan"], "selection_bg": p["neon"]["green"],
+                         "accent": p["neon"]["blue"]}.get(key, color)
+            lines.append(f'{key} = "{color}"')
+    return "\n".join(lines + [END])
+
+
+def shell_theme():
+    # ANSI 7/8/15 are the generated fg/muted/emphasis colors in either appearance.
+    lines = ["# " + NOTICE, "typeset -g NEON_PROMPT_FG=7 NEON_PROMPT_MUTED=8 NEON_PROMPT_EMPHASIS=15",
+             "typeset -g ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'", "typeset -gA ZSH_HIGHLIGHT_STYLES",
+             "ZSH_HIGHLIGHT_STYLES=("]
+    styles = {
+        "default": "fg=7", "arg0": "fg=15,bold", "command": "fg=15,bold",
+        "builtin": "fg=15,bold", "function": "fg=15,bold", "alias": "fg=15,bold",
+        "suffix-alias": "fg=15,bold", "global-alias": "fg=15,bold",
+        "precommand": "fg=15,bold", "hashed-command": "fg=15,bold",
+        "unknown-token": "fg=15,bold,underline", "reserved-word": "fg=15,bold",
+        "path": "fg=7,underline", "path_prefix": "fg=7,underline",
+        "autodirectory": "fg=7,underline", "path_pathseparator": "fg=8",
+        "path_prefix_pathseparator": "fg=8", "comment": "fg=8",
+    }
+    for key in ("commandseparator", "globbing", "history-expansion", "command-substitution",
+                "command-substitution-delimiter", "process-substitution", "process-substitution-delimiter",
+                "single-hyphen-option", "double-hyphen-option", "back-quoted-argument",
+                "back-quoted-argument-delimiter", "single-quoted-argument", "double-quoted-argument",
+                "dollar-quoted-argument", "rc-quote", "dollar-double-quoted-argument",
+                "back-double-quoted-argument", "back-dollar-quoted-argument", "assign", "redirection",
+                "named-fd", "numeric-fd"):
+        styles[key] = "fg=7"
+    lines += [f"  {key} '{style}'" for key, style in styles.items()]
+    lines += [")", "# Pickers are applications: highlight matches and actions with neon ANSI colors.",
+              "typeset -g NEON_FZF_COLORS='fg:7,bg:-1,hl:6,fg+:15,bg+:-1,hl+:5,pointer:5,marker:2,spinner:6,header:8,border:8,prompt:6'", ""]
+    return "\n".join(lines)
+
+
+def lazygit_theme():
+    # Named ANSI colors follow Ghostty's palette live, including light/dark changes.
+    return "\n".join([
+        "# " + NOTICE, "gui:", "  theme:", "    activeBorderColor: [cyan, bold]",
+        "    inactiveBorderColor: [default]", "    searchingActiveBorderColor: [magenta, bold]",
+        "    optionsTextColor: [cyan]", "    selectedLineBgColor: [default]",
+        "    selectedLineFgColor: [cyan, bold]", "    cherryPickedCommitBgColor: [default]",
+        "    cherryPickedCommitFgColor: [magenta]", "    unstagedChangesColor: [red]",
+        "    defaultFgColor: [default]", "    authorColors:", '      "*": cyan', ""])
+
+
+def codex_theme(p, mode):
+    """TextMate/syntect colors for Codex code blocks and diffs."""
+    accent = p.get("neon", p)
+    settings = [{"settings": {
+        "background": p["bg"], "foreground": p["fg"], "caret": p["fg"],
+        "selection": accent["cyan"] if "neon" in p else p["selection"],
+        "selectionForeground": p["fg"], "lineHighlight": p["alt"],
+        "gutter": p["bg"], "gutterForeground": p["muted"], "invisibles": p["border"],
+        "findHighlight": accent["yellow"], "findHighlightForeground": p["fg"],
+    }}]
+    rules = [
+        ("Comments", "comment, punctuation.definition.comment", {"foreground": p["muted"], "fontStyle": "italic"}),
+        ("Keywords", "keyword, storage", {"foreground": p["pink"]}),
+        ("Operators", "keyword.operator", {"foreground": p["cyan"]}),
+        ("Strings", "string", {"foreground": p["green"]}),
+        ("Constants", "constant.numeric, constant.language, constant.other", {"foreground": p["yellow"]}),
+        ("Escapes", "constant.character.escape", {"foreground": p["orange"]}),
+        ("Functions", "entity.name.function, support.function, variable.function", {"foreground": p["blue"]}),
+        ("Types", "entity.name.type, entity.name.class, entity.other.inherited-class, support.type, support.class, storage.type", {"foreground": p["cyan"]}),
+        ("Variables", "variable, punctuation", {"foreground": p["fg"]}),
+        ("Invalid", "invalid.illegal", {"foreground": p["red"], "background": p["delete"]}),
+        ("Deprecated", "invalid.deprecated", {"foreground": p["orange"], "fontStyle": "underline"}),
+        ("Headings", "markup.heading, entity.name.section", {"foreground": p["blue"], "fontStyle": "bold"}),
+        ("Links", "markup.underline.link, string.other.link", {"foreground": p["cyan"], "fontStyle": "underline"}),
+        ("Bold", "markup.bold", {"fontStyle": "bold"}),
+        ("Italic", "markup.italic", {"fontStyle": "italic"}),
+        ("Added", "markup.inserted", {"foreground": p["green"], "background": p["add"]}),
+        ("Deleted", "markup.deleted", {"foreground": p["red"], "background": p["delete"]}),
+        ("Changed", "markup.changed", {"foreground": p["blue"], "background": p["change"]}),
+        ("Diff headings", "meta.diff.header, meta.separator.diff", {"foreground": p["cyan"]}),
+    ]
+    settings += [{"name": name, "scope": scope, "settings": values} for name, scope, values in rules]
+    theme = {"name": "Neon " + mode.title(), "comment": NOTICE, "settings": settings}
+    return plistlib.dumps(theme, fmt=plistlib.FMT_XML, sort_keys=False).decode("utf-8")
+
+
+def install_codex():
+    home = Path(os.environ.get("CODEX_HOME") or str(Path.home() / ".codex")).expanduser()
+    destination = home / "themes"
+    links = [(destination / f"neon-{mode}.tmTheme", (ROOT / f".config/theme/codex/neon-{mode}.tmTheme").resolve())
+             for mode in ("dark", "light")]
+    # Inspect every destination before creating anything; do not replace custom themes.
+    for path, source in links:
+        if path.is_symlink() and path.resolve() == source:
+            continue
+        if path.exists() or path.is_symlink():
+            raise ValueError(f"Refusing to replace {path}; preserve/move it aside before installing")
+    destination.mkdir(parents=True, exist_ok=True)
+    for path, source in links:
+        if not path.is_symlink():
+            path.symlink_to(source)
+    print(f"Codex themes linked in {destination}. Select neon-dark or neon-light with /theme.")
+
+
+def outputs(palettes):
+    result = {f".config/ghostty/themes/neon-{mode}": ghostty(p, mode) for mode, p in palettes.items()}
+    result.update({f".config/theme/codex/neon-{mode}.tmTheme": codex_theme(p, mode) for mode, p in palettes.items()})
+    result[".config/nvim/lua/config/palette.lua"] = lua_palette(palettes)
+    result[".config/theme/palette.sh"] = tmux_palette(palettes)
+    result[".config/theme/shell.zsh"] = shell_theme()
+    result[".config/lazygit/config.yml"] = lazygit_theme()
+    path = ".config/herdr/config.toml"
+    original = (ROOT / path).read_text()
+    if original.count(BEGIN) != 1 or original.count(END) != 1:
+        raise ValueError("Herdr config must contain exactly one generated theme block")
+    start, end = original.index(BEGIN), original.index(END) + len(END)
+    result[path] = original[:start] + herdr_theme(palettes) + original[end:]
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument("--check", action="store_true", help="validate palette and reject stale generated files")
+    actions.add_argument("--install-codex", action="store_true", help="generate themes and link Codex exports under CODEX_HOME/themes")
+    args = parser.parse_args()
+    try:
+        palettes = json.loads((ROOT / SOURCE).read_text())
+        validate(palettes)
+        generated = outputs(palettes)
+    except (ValueError, OSError) as error:
+        print(f"Theme error: {error}", file=sys.stderr)
+        return 1
+    stale = []
+    for name, content in generated.items():
+        path = ROOT / name
+        if path.exists() and path.read_text() == content:
+            continue
+        stale.append(name)
+        if not args.check:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+    if args.check and stale:
+        print("Generated themes are stale; run ./scripts/theme:\n  " + "\n  ".join(stale), file=sys.stderr)
+        return 1
+    if args.install_codex:
+        try:
+            install_codex()
+        except (OSError, ValueError) as error:
+            print(f"Codex theme install error: {error}", file=sys.stderr)
+            return 1
+    print("Theme palette and exports are current." if args.check else f"Updated {len(stale)} theme files.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

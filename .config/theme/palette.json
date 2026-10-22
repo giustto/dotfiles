@@ -1,0 +1,51 @@
+{
+  "dark": {
+    "bg": "#101010",
+    "alt": "#191919",
+    "surface": "#303030",
+    "border": "#6b6b6b",
+    "fg": "#eeeeee",
+    "muted": "#a3a3a3",
+    "blue": "#00c8ff",
+    "pink": "#ff27d8",
+    "green": "#39ff88",
+    "red": "#ff3978",
+    "yellow": "#faff00",
+    "cyan": "#00f5ff",
+    "orange": "#ff9f1c",
+    "selection": "#353535",
+    "add": "#10351f",
+    "delete": "#3d1527",
+    "change": "#112e3f",
+    "text": "#244963"
+  },
+  "light": {
+    "bg": "#fafafa",
+    "alt": "#efefef",
+    "surface": "#dedede",
+    "border": "#858585",
+    "fg": "#171717",
+    "muted": "#5c5c5c",
+    "blue": "#005cff",
+    "pink": "#f000b8",
+    "green": "#009f39",
+    "red": "#ff1558",
+    "yellow": "#a87a00",
+    "cyan": "#008fa8",
+    "orange": "#df5400",
+    "selection": "#dcdcdc",
+    "add": "#d8f7e1",
+    "delete": "#ffe0ec",
+    "change": "#dcefff",
+    "text": "#b9dfff",
+    "neon": {
+      "red": "#ff245c",
+      "green": "#39ff72",
+      "yellow": "#f2ff00",
+      "blue": "#267dff",
+      "pink": "#ff00d4",
+      "cyan": "#00e8ff",
+      "orange": "#ff8500"
+    }
+  }
+}

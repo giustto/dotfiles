@@ -1,13 +1,30 @@
--- Run with the config loaded: nvim --headless '+luafile ~/.config/nvim/tests/review.lua'
+-- Run from the repository: ./scripts/check --integration
 -- Uses only temporary repositories; never stages or commits the user's files.
 local function test()
   vim.o.columns, vim.o.lines = 115, 35
+  local reading = require("config.reading")
+  assert(vim.wo.wrap and vim.wo.linebreak and vim.wo.breakindent, "Long lines wrap without altering the file")
+  local first = vim.api.nvim_get_current_win()
+  vim.cmd.vsplit()
+  local second = vim.api.nvim_get_current_win()
+  vim.wo.cursorbind = true
+  reading.toggle_sync()
+  assert(vim.wo[first].scrollbind and vim.wo[second].scrollbind, "Both ordinary splits synchronize")
+  assert(not vim.wo[second].cursorbind, "Scroll sync leaves the cursor independent")
+  reading.toggle_sync()
+  assert(not vim.wo[first].scrollbind and not vim.wo[second].scrollbind, "Sync toggles off in both splits")
+  assert(vim.wo[second].cursorbind, "Sync restores previous cursor binding")
+  vim.api.nvim_win_close(second, true)
   assert(require("config.tabline").render():find("Workspace", 1, true), "Unnamed editor tab is a workspace")
-  require("lazy").load({ plugins = { "diffview.nvim", "gitsigns.nvim", "grug-far.nvim", "which-key.nvim", "mini.ai" } })
+  require("lazy").load({
+    plugins = { "diffview.nvim", "gitsigns.nvim", "grug-far.nvim", "which-key.nvim", "mini.ai" },
+  })
   local errors = {}
   local notify = vim.notify
   vim.notify = function(message, level, opts)
-    if level == vim.log.levels.ERROR then errors[#errors + 1] = tostring(message) end
+    if level == vim.log.levels.ERROR then
+      errors[#errors + 1] = tostring(message)
+    end
     notify(message, level, opts)
   end
   local root = vim.fn.tempname() .. " review repo"
@@ -19,7 +36,9 @@ local function test()
     assert(result.code == 0, result.stderr)
     return vim.trim(result.stdout)
   end
-  local function write(path, lines) vim.fn.writefile(lines, root .. "/" .. path) end
+  local function write(path, lines)
+    vim.fn.writefile(lines, root .. "/" .. path)
+  end
   git("init", "-b", "main")
   git("config", "user.name", "Neon Test")
   git("config", "user.email", "neon@example.invalid")
@@ -37,7 +56,16 @@ local function test()
   vim.cmd.edit(vim.fn.fnameescape(root .. "/tracked file.txt"))
   local review = require("config.review")
   assert(review.root() == vim.uv.fs_realpath(root), "Git root with spaces")
-  review.checkpoint()
+  local captured
+  require("config.task_review").capture(root, "Integration baseline", function(value)
+    captured = value
+  end)
+  assert(
+    vim.wait(5000, function()
+      return captured ~= nil
+    end, 20),
+    "Persistent baseline captured"
+  )
   write("tracked file.txt", { "agent commit", "staged" })
   git("add", "tracked file.txt")
   write("tracked file.txt", { "agent commit", "staged", "unstaged" })
@@ -50,11 +78,24 @@ local function test()
     assert(vim.wait(timeout or 5000, predicate, 20), message)
   end
   local function current_diff()
-    wait_for(function() return lib.get_current_view() ~= nil end, "Review tab opens")
+    wait_for(function()
+      return lib.get_current_view() ~= nil
+    end, "Review tab opens")
     local view = lib.get_current_view()
     assert(view, "Review tab exists")
-    wait_for(function() return view.files:len() > 0 end, "Diff contains files")
+    wait_for(function()
+      return view.files:len() > 0
+    end, "Diff contains files")
     vim.wait(500)
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.wo[win].diff then
+        assert(vim.wo[win].wrap, "Diff content wraps on every file and layout")
+        assert(
+          vim.wo[win].scrollbind and vim.wo[win].cursorbind,
+          "Diff scrolling and cursors stay synchronized"
+        )
+      end
+    end
     return view
   end
   local function close()
@@ -69,6 +110,20 @@ local function test()
   assert(not tabline:find(root, 1, true), "Tab labels omit full paths")
   assert(#view.files.staged == 1, "Staged section")
   assert(#view.files.working == 2, "Unstaged and untracked sections")
+  local diff_win
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.wo[win].diff then
+      diff_win = win
+      break
+    end
+  end
+  vim.api.nvim_win_call(diff_win, reading.toggle_wrap)
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.wo[win].diff then
+      assert(not vim.wo[win].wrap, "Wrap toggle affects every diff pane")
+    end
+  end
+  vim.api.nvim_win_call(diff_win, reading.toggle_wrap)
   assert(review.root() == vim.uv.fs_realpath(root), "Repository in review panel")
   local responsive = require("config.responsive")
   local horizontal = require("diffview.scene.layouts.diff_2_hor").Diff2Hor
@@ -87,20 +142,33 @@ local function test()
   assert(responsive.explorer_layout().preset == "compact", "Small explorer floats over editor")
   local picker_config = require("snacks.picker.config")
   local narrow_explorer = picker_config.get({ source = "explorer" })
-  assert(narrow_explorer.auto_close and narrow_explorer.jump.close, "Small explorer closes after file selection")
-  assert(vim.tbl_contains(picker_config.layout(narrow_explorer).hidden, "preview"), "Small explorer omits preview")
+  assert(
+    narrow_explorer.auto_close and narrow_explorer.jump.close,
+    "Small explorer closes after file selection"
+  )
+  assert(
+    vim.tbl_contains(picker_config.layout(narrow_explorer).hidden, "preview"),
+    "Small explorer omits preview"
+  )
   vim.o.columns, vim.o.lines = 40, 12
   responsive.apply()
-  assert(view.cur_entry.layout.class == vertical and not view.panel:is_open(), "Very small review keeps one full-width diff")
+  assert(
+    view.cur_entry.layout.class == vertical and not view.panel:is_open(),
+    "Very small review keeps one full-width diff"
+  )
   vim.o.columns, vim.o.lines = 115, 35
   responsive.apply()
   assert(view.panel:is_open(), "File list returns when terminal widens")
   local wide_explorer = picker_config.get({ source = "explorer" })
   assert(not wide_explorer.auto_close and not wide_explorer.jump.close, "Wide explorer stays open")
   write("auto refresh.txt", { "written while review is open" })
-  wait_for(function() return #view.files.working == 3 end, "Open review refreshes after external file change", 8000)
+  wait_for(function()
+    return #view.files.working == 3
+  end, "Open review refreshes after external file change", 8000)
   assert(vim.fn.delete(root .. "/auto refresh.txt") == 0, "Remove temporary refresh fixture")
-  wait_for(function() return #view.files.working == 2 end, "Open review removes deleted file", 8000)
+  wait_for(function()
+    return #view.files.working == 2
+  end, "Open review removes deleted file", 8000)
   close()
   vim.o.columns, vim.o.lines = 70, 18
   review.open(nil, nil, { "--cached" })
@@ -117,13 +185,15 @@ local function test()
   assert(current_diff().files:len() == 1, "Single commit review")
   close()
   review.since_checkpoint()
-  assert(current_diff().left.commit == head, "Checkpoint keeps original HEAD")
+  assert(current_diff().left.commit == captured.commit, "Review uses the durable working-tree snapshot")
   close()
   vim.cmd.edit(vim.fn.fnameescape(root .. "/tracked file.txt"))
   review.history(true)
   view = lib.get_current_view()
   assert(view, "File history opens")
-  wait_for(function() return #view.panel.entries > 0 end, "File history populated")
+  wait_for(function()
+    return #view.panel.entries > 0
+  end, "File history populated")
   vim.wait(500)
   assert(#view.adapter.ctx.path_args == 1, "History restricted to current file")
   vim.o.columns, vim.o.lines = 85, 16
@@ -134,17 +204,23 @@ local function test()
   close()
   local status_before = git("status", "--porcelain")
   local branch_picker = review.branches()
-  wait_for(function() return branch_picker.shown and not branch_picker:is_active() end, "Branch picker ready")
+  wait_for(function()
+    return branch_picker.shown and not branch_picker:is_active()
+  end, "Branch picker ready")
   local base
   for _, item in ipairs(branch_picker:items()) do
-    if item.branch == "main" then base = item end
+    if item.branch == "main" then
+      base = item
+    end
   end
   assert(base, "Base branch offered")
   branch_picker.opts.confirm(branch_picker, base)
   assert(current_diff().rev_arg == "main...HEAD", "Branch Enter opens merge-base review")
   close()
   local commit_picker = review.commits()
-  wait_for(function() return commit_picker.shown and not commit_picker:is_active() end, "Commit picker ready")
+  wait_for(function()
+    return commit_picker.shown and not commit_picker:is_active()
+  end, "Commit picker ready")
   local commit = commit_picker:items()[1]
   commit_picker.opts.confirm(commit_picker, commit)
   assert(current_diff().rev_arg == commit.commit .. "^!", "Commit Enter opens patch")
@@ -157,21 +233,37 @@ local function test()
   assert(review.root() == vim.uv.fs_realpath(worktree), "Linked worktree uses its own root")
   vim.cmd.edit(vim.fn.fnameescape(root .. "/tracked file.txt"))
   local picker = Snacks.explorer({ cwd = root })
-  wait_for(function() return #picker:items() > 0 end, "Explorer populated")
+  wait_for(function()
+    return #picker:items() > 0
+  end, "Explorer populated")
   assert(picker.resolved_layout.preset == "sidebar", "Wide explorer starts as sidebar")
   vim.o.columns, vim.o.lines = 70, 18
   vim.api.nvim_exec_autocmds("VimResized", {})
-  assert(vim.wait(5000, function() return picker.resolved_layout.preset == "compact" end, 20),
-    "Open explorer adapts to narrow terminal: " .. tostring(picker.resolved_layout.preset)
-      .. " closed=" .. tostring(picker.closed) .. " at " .. vim.o.columns .. "x" .. vim.o.lines)
+  assert(
+    vim.wait(5000, function()
+      return picker.resolved_layout.preset == "compact"
+    end, 20),
+    "Open explorer adapts to narrow terminal: "
+      .. tostring(picker.resolved_layout.preset)
+      .. " closed="
+      .. tostring(picker.closed)
+      .. " at "
+      .. vim.o.columns
+      .. "x"
+      .. vim.o.lines
+  )
   assert(picker.opts.auto_close and picker.opts.jump.close, "Open narrow explorer becomes temporary")
   vim.o.columns, vim.o.lines = 115, 35
   vim.api.nvim_exec_autocmds("VimResized", {})
-  wait_for(function() return picker.resolved_layout.preset == "sidebar" end, "Open explorer returns to sidebar")
+  wait_for(function()
+    return picker.resolved_layout.preset == "sidebar"
+  end, "Open explorer returns to sidebar")
   assert(not picker.opts.auto_close, "Wide explorer remains persistent")
   vim.wait(1000)
   local files = {}
-  for _, item in ipairs(picker:items()) do files[vim.fs.basename(item.file or "")] = true end
+  for _, item in ipairs(picker:items()) do
+    files[vim.fs.basename(item.file or "")] = true
+  end
   assert(files[".env.example"], "Dotfiles visible")
   assert(files[".cache"], "Ignored hidden folders visible")
   assert(files["ignored.txt"], "Ignored files visible")
@@ -180,12 +272,19 @@ local function test()
   vim.wait(100)
   vim.o.columns, vim.o.lines = 40, 12
   local small_picker = Snacks.picker.files({ cwd = root })
-  wait_for(function() return small_picker.shown and #small_picker:items() > 0 end, "Small file picker opens")
-  assert(vim.tbl_contains(small_picker.resolved_layout.hidden, "preview"), "Small file picker uses compact layout")
+  wait_for(function()
+    return small_picker.shown and #small_picker:items() > 0
+  end, "Small file picker opens")
+  assert(
+    vim.tbl_contains(small_picker.resolved_layout.hidden, "preview"),
+    "Small file picker uses compact layout"
+  )
   vim.wait(100)
   small_picker:close()
   local small_explorer = Snacks.explorer({ cwd = root })
-  wait_for(function() return small_explorer.shown and #small_explorer:items() > 0 end, "Small explorer opens")
+  wait_for(function()
+    return small_explorer.shown and #small_explorer:items() > 0
+  end, "Small explorer opens")
   assert(small_explorer.resolved_layout.preset == "compact", "Small explorer uses compact layout")
   vim.wait(100)
   small_explorer:close()
@@ -196,12 +295,39 @@ local function test()
     vim.cmd.colorscheme("neon")
     assert(vim.g.colors_name == "neon", "Theme loads")
     local normal = vim.api.nvim_get_hl(0, { name = "Normal" })
-    assert(normal.bg == tonumber(mode == "dark" and "10131b" or "f8f9fc", 16), "Ghostty background matches")
+    assert(
+      normal.bg == tonumber(require("config.palette")[mode].bg:sub(2), 16),
+      "Generated palette background matches"
+    )
+    for i, color in ipairs(require("config.palette").ansi[mode]) do
+      assert(vim.g["terminal_color_" .. (i - 1)] == color, "Embedded terminal shares the ANSI palette")
+    end
+    local function luminance(hex)
+      local values = {}
+      for c in hex:gmatch("%x%x") do
+        local n = tonumber(c, 16) / 255
+        values[#values + 1] = n <= 0.04045 and n / 12.92 or ((n + 0.055) / 1.055) ^ 2.4
+      end
+      return 0.2126 * values[1] + 0.7152 * values[2] + 0.0722 * values[3]
+    end
+    local p = require("config.theme").palette()
+    for _, key in ipairs({ "fg", "muted", "blue", "pink", "green", "red", "yellow", "cyan" }) do
+      local a, b = luminance(p[key]), luminance(p.bg)
+      local minimum = mode == "light" and key ~= "fg" and key ~= "muted" and 3 or 4.5
+      assert((math.max(a, b) + 0.05) / (math.min(a, b) + 0.05) >= minimum, mode .. " readable " .. key)
+    end
+    if mode == "light" then
+      local search = vim.api.nvim_get_hl(0, { name = "Search" })
+      assert(search.bg == tonumber(p.neon.yellow:sub(2), 16), "Light search uses fluorescent yellow")
+      assert(search.fg == tonumber(p.fg:sub(2), 16), "Light search keeps dark text on the neon background")
+    end
   end
   vim.wait(300)
   assert(#errors == 0, table.concat(errors, "\n"))
   assert(vim.v.errmsg == "", vim.v.errmsg)
-  print("PASS: startup, live review refresh, responsive reviews/pickers/explorer, staged/unstaged/untracked diffs, branch/commit pickers, checkpoint, file history, worktrees, neon light/dark")
+  print(
+    "PASS: startup, wrapped/synchronized diffs and splits, live review refresh, responsive layouts, Git review/history/worktrees, light/dark contrast"
+  )
 end
 
 local ok, err = xpcall(test, debug.traceback)
