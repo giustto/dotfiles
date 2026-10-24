@@ -326,7 +326,7 @@ clock on the right. The sidebar remains available for Herdr's workspace and
 agent controls. Split panes use internal dividers without outer borders,
 gaps, or scrollbars. Mouse selections copy automatically. The terminal title
 shows workspace and tab, and agent states use distinct symbols. Background
-agent notifications appear inside Herdr after two seconds, with sounds disabled.
+agent notifications appear inside Herdr after two seconds, with sounds enabled.
 Ghostty forwards left Option as Alt; right Option keeps special-character input.
 
 Left Option-j/k are left to macOS Spaces. Numbered workspace jumps require the

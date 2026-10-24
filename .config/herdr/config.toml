@@ -183,7 +183,7 @@ delivery = "herdr"
 delay_seconds = 2
 
 [ui.sound]
-enabled = false
+enabled = true
 
 # Herdr measures scrollback in bytes rather than tmux's history-limit lines.
 [advanced]
