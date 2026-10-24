@@ -180,7 +180,7 @@ tab_bar_right_separator = "  "
 
 [ui.toast]
 delivery = "herdr"
-delay_seconds = 2
+delay_seconds = 0
 
 [ui.sound]
 enabled = true
