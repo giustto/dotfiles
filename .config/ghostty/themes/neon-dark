@@ -1,5 +1,5 @@
 # Generated from .config/theme/palette.json; edit the palette, then run ./scripts/theme.
-background = #101010
+background = #000000
 foreground = #eeeeee
 cursor-color = #eeeeee
 selection-background = #353535

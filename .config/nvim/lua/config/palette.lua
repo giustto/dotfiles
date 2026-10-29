@@ -1,7 +1,7 @@
 -- Generated from .config/theme/palette.json; edit the palette, then run ./scripts/theme.
 return {
   dark = {
-    bg = "#101010",
+    bg = "#000000",
     alt = "#191919",
     surface = "#303030",
     border = "#6b6b6b",

@@ -5,7 +5,7 @@
 neon_palette() {
   case ${1:-dark} in
     dark)
-      bg='#101010'
+      bg='#000000'
       bg_alt='#191919'
       surface='#303030'
       border='#6b6b6b'
